@@ -1,0 +1,49 @@
+# Qwen 完整流程：注册 → 激活 → 登录 → Token 提取 → 写入 auth-profiles.json
+# 无需 openclaw onboard
+
+name: "Qwen Token 自动获取"
+description: "1secMail 临时邮箱 + chat.qwen.ai 注册 + 激活 + 登录 + Token 写入"
+initial_url: "https://chat.qwen.ai/auth?mode=register"
+headless: false
+
+steps:
+  - step: 1
+    action: generate_credentials
+    description: "生成临时邮箱与随机密码"
+
+  - step: 2
+    action: navigate
+    url: "https://chat.qwen.ai/auth?mode=register"
+    description: "打开 Qwen 注册页"
+
+  - step: 3
+    action: fill_register_form
+    description: "填写注册表单（邮箱、密码、确认密码）"
+
+  - step: 4
+    action: submit_register
+    description: "提交注册"
+
+  - step: 5
+    action: wait_activation_email
+    description: "1secMail 轮询等待激活邮件"
+
+  - step: 6
+    action: open_activation_link
+    description: "打开激活链接完成验证"
+
+  - step: 7
+    action: fill_login_form
+    description: "填写登录表单（邮箱、密码）"
+
+  - step: 8
+    action: submit_login
+    description: "提交登录"
+
+  - step: 9
+    action: extract_token
+    description: "提取 OAuth token（localStorage/网络）"
+
+  - step: 10
+    action: write_auth_profiles
+    description: "写入 auth-profiles.json"
