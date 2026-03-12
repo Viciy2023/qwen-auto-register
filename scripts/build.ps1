@@ -107,16 +107,20 @@ if (-not (Test-Path $srcPath)) {
 # ========== 5. PyInstaller 打包 ==========
 Write-Step "PyInstaller build..."
 
+$iconPath = Join-Path $ProjectRoot "assets\app_icon.ico"
+
 $pyinstallerArgs = @(
     "--noconfirm",
     "--windowed",
     "--onefile",
     "--name", "auto_register",
+    "--icon", $iconPath,
     "--paths", $srcPath,
     "--hidden-import", "auto_register",
     "--hidden-import", "auto_register.gui.app",
     "--hidden-import", "auto_register.gui.log_panel",
     "--hidden-import", "auto_register.integrations.qwen_portal",
+    "--hidden-import", "auto_register.integrations.qwen_oauth_client",
     "--hidden-import", "auto_register.providers.one_sec_mail_provider",
     "--hidden-import", "auto_register.providers.username_provider",
     "--hidden-import", "auto_register.writer.auth_profiles_writer",

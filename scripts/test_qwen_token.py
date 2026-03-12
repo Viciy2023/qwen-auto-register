@@ -1,8 +1,9 @@
 """测试 Qwen token 是否可用于 API 调用。"""
 import json
-import os
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 try:
     import requests
@@ -10,30 +11,24 @@ except ImportError:
     print("请先安装: pip install requests")
     sys.exit(1)
 
-# 与 AuthProfilesWriter 相同的路径逻辑
-def _auth_profiles_paths():
-    paths = []
-    if os.environ.get("OPENCLAW_AUTH_PROFILES_PATH"):
-        paths.append(Path(os.environ["OPENCLAW_AUTH_PROFILES_PATH"]))
-    paths.append(Path.home() / ".openclaw" / "agents" / "main" / "agent" / "auth-profiles.json")
-    paths.append(Path.home() / ".openclaw" / "auth-profiles.json")
-    return paths
+from auto_register.writer.auth_profiles_writer import get_default_auth_profiles_path
 
 
 def get_token_from_profiles() -> str | None:
     """从 auth-profiles.json 读取 qwen-portal access token。"""
-    for p in _auth_profiles_paths():
-        if p.exists():
-            try:
-                data = json.loads(p.read_text(encoding="utf-8"))
-                profiles = data.get("profiles", {})
-                for key, prof in profiles.items():
-                    if "qwen" in key.lower() and prof.get("type") == "oauth":
-                        acc = prof.get("access")
-                        if acc:
-                            return acc
-            except Exception:
-                pass
+    p = get_default_auth_profiles_path()
+    if not p.exists():
+        return None
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        profiles = data.get("profiles", {})
+        for key, prof in profiles.items():
+            if "qwen" in key.lower() and prof.get("type") == "oauth":
+                acc = prof.get("access")
+                if acc:
+                    return acc
+    except Exception:
+        pass
     return None
 
 

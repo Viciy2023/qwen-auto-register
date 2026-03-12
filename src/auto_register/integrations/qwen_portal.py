@@ -1,5 +1,6 @@
 """Qwen registration + login + token extraction runner."""
 
+import os
 import string
 import tempfile
 from dataclasses import dataclass
@@ -125,6 +126,11 @@ class QwenPortalRunner:
                     self._log("12. 全部完成，新账号已就绪")
                 else:
                     self._log("12. Token 已写入，但 Gateway 重启失败，请手动执行: openclaw gateway restart")
+                # 供 qwen-rate-limit-monitor 检测成功
+                try:
+                    (Path(os.environ.get("TEMP", "")) / "qwen-register-success").touch()
+                except Exception:
+                    pass
                 return True
             except Exception as e:
                 self._log(f"错误: {e}")

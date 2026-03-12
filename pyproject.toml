@@ -24,4 +24,4 @@ dev = ["pytest", "ruff"]
 where = ["src"]
 
 [project.scripts]
-auto-register = "auto_register.main:run_cli"
+auto-register = "auto_register.main:main"
