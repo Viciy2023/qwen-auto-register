@@ -11,9 +11,9 @@ from playwright.sync_api import Page, sync_playwright
 
 from ..providers.one_sec_mail_provider import get_email_provider
 from ..providers.username_provider import UsernameProvider
-from ..utils.gateway import restart_openclaw_gateway
 from ..utils.token_utils import is_valid_jwt, validate_tokens
 from ..writer.auth_profiles_writer import AuthProfilesWriter
+from ..writer.output_writer import OutputWriter
 from .qwen_oauth_client import run_device_code_flow
 
 
@@ -50,10 +50,12 @@ class QwenPortalRunner:
         self,
         headless: bool = False,
         auth_profiles_path: Optional[Path] = None,
+        output_dir: Optional[Path] = None,
         on_step: Optional[Callable[[str], None]] = None,
     ):
         self._headless = headless
         self._writer = AuthProfilesWriter(path=auth_profiles_path)
+        self._output_writer = OutputWriter(output_dir=output_dir)
         self._on_step = on_step or (lambda _: None)
 
     def _log(self, msg: str) -> None:
@@ -68,7 +70,7 @@ class QwenPortalRunner:
             password=_generate_password(),
         )
         self._log(f"1. 临时邮箱: {creds.email}")
-        self._log(f"2. 随机密码已生成")
+        self._log(f"2. 随机密码: {creds.password}")
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=self._headless)
@@ -118,19 +120,29 @@ class QwenPortalRunner:
                     self._log(f"错误: {e}")
                     return False
 
-                self._log("10. 正在写入 auth-profiles.json...")
-                self._writer.write_qwen_profile(access=access, refresh=refresh, expires=expires)
-                self._log("11. 已写入 auth-profiles.json")
+                # 保存到 output 目录
+                txt_path = self._output_writer.save_account_txt(creds.email, creds.password)
+                json_path = self._output_writer.save_qwen_json(
+                    email=creds.email,
+                    access_token=access,
+                    refresh_token=refresh,
+                    expires_ms=expires,
+                )
+                self._log(f"10. 已保存账号密码: {txt_path.name}")
+                self._log(f"11. 已保存 Token JSON: {json_path.name}")
 
-                if restart_openclaw_gateway(on_log=self._log):
-                    self._log("12. 全部完成，新账号已就绪")
-                else:
-                    self._log("12. Token 已写入，但 Gateway 重启失败，请手动执行: openclaw gateway restart")
-                # 供 qwen-rate-limit-monitor 检测成功
-                try:
-                    (Path(os.environ.get("TEMP", "")) / "qwen-register-success").touch()
-                except Exception:
-                    pass
+                # 注释掉 Gateway 重启逻辑（不再需要）
+                # if restart_openclaw_gateway(on_log=self._log):
+                #     self._log("12. 全部完成，新账号已就绪")
+                # else:
+                #     self._log("12. Token 已写入，但 Gateway 重启失败，请手动执行: openclaw gateway restart")
+                # # 供 qwen-rate-limit-monitor 检测成功
+                # try:
+                #     (Path(os.environ.get("TEMP", "")) / "qwen-register-success").touch()
+                # except Exception:
+                #     pass
+
+                self._log("12. 完成！账号和 Token 已保存到 output 目录")
                 return True
             except Exception as e:
                 self._log(f"错误: {e}")
